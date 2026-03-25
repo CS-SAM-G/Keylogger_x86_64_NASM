@@ -1,0 +1,8 @@
+# Build artifacts
+/build/
+*.o
+*.exe
+*.bin
+
+# Local scripts
+build_push.sh
