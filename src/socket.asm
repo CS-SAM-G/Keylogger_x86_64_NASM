@@ -24,7 +24,7 @@ extern buffer
 extern BUFFER_SIZE
 
 extern aes_key_expansion
-extern aes_encrypt_block
+extern aes_encrypt
 
 ; - - - INITIALIZED DATA - - -
 section .data
