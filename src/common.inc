@@ -3,8 +3,7 @@
 ; Date: 2026-03-23
 ; Notes:
 ;   - Centralized constants and macros for main.asm, keylogger.asm, socket.asm
-;   - Shared memory variables defined in main.asm; other files should extern them
-;   - Macros standardized for threads, sleep, exit, syscall error handling
+;   - Shared memory variables defined in main.asm
 
 default rel
 

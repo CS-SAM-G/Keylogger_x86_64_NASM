@@ -11,8 +11,6 @@
 ;   - No encryption implemented yet (placeholder for future module)
 ;   - Designed for local testing (VM ↔ host via NAT)
 ;
-; THIS PROJECT IS FOR EDUCATIONAL PURPOSES ONLY
-; DO NOT USE ON SYSTEMS WITHOUT EXPLICIT PERMISSION
 
 %include "common.inc"
 global read_thread
@@ -36,11 +34,9 @@ section .data
   ; Packet types
   HEARTBEAT_TYPE equ 1
   MESSAGE_TYPE equ 2
-  FRAGMENT_TYPE equ 3     ; Not implemented yet
-  TRAINEND_TYPE equ 4     ; Not implemented yet
 
   ; Packet Constants 
-  MAX_PACKET_SIZE equ 1024
+  MAX_PACKET_SIZE equ 1024 
 
   ; Connection configuration
   RECONNECT_ATTEMPTS equ 3
@@ -48,7 +44,7 @@ section .data
   HEARTBEAT_INTERVAL equ 10          ; seconds
 
   ; AES key
-  key db 0x00
+  key db 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f 
 
 
 ; - - - UNINITIALIZED DATA - - -
@@ -56,7 +52,7 @@ section .bss
   sock_fd resq 1                     ; Socket file descriptor
   sockaddr_in resb 16                ; struct sockaddr_in
   packet_buffer resb MAX_PACKET_SIZE ; Protocol buffer
-  fragment_flag resb 1    ; Change to fragment flag duh
+  fragment_flag resb 1               ; Change to fragment flag duh
 
   ; timespec struct for nanosleep
   ts_sec resq 1
@@ -90,18 +86,37 @@ section .bss
   syscall
 %endmacro
 
-; Send packet
+; Encrypt and send packet
 ; Parameters:
 ;   %1 = buffer
 ;   %2 = length
-; Usage: SEND_PACKET packet_buffer, len
+; Usage: SEND_PACKET packet_buffer
 %macro SEND_PACKET 2
+
+  mov rbx, %1                     ; Store start position
+  mov rsi, expanded_key           ; Store EK for aes_encrypt function 
+  mov rdi, rbx                    ; Current block pointer
+  
+  mov rcx, %2
+  add rcx, 15         ; Forces ceiling when shr 4 (/ 16)
+  shr rcx, 4
+
+  mov rdx, rcx        ; # of blocks we're encrypting
+
+  %%encrypt_packet:
+    call aes_encrypt
+    add rdi, 16
+    dec rcx 
+    jnz %%encrypt_packet
+
   mov rax, SYS_WRITE
   mov rdi, [sock_fd]
-  lea rsi, [%1]
-  mov rdx, %2
+  mov rsi, rbx
+  shl rdx, 4          ; bytes = blocks * 16
   syscall
+
 %endmacro
+
 
 ; Close socket
 %macro CLOSE_SOCKET 0
@@ -110,10 +125,19 @@ section .bss
   syscall
 %endmacro
 
+; Expand key 
+%macro EXPAND_KEY 0
+  mov rsi, key
+  mov rdi, expanded_key ; do we have to move back?
+  call aes_key_expansion
+%endmacro 
+
+
 ; - - - CODE - - -
 section .text
 global read_thread
 read_thread:
+  EXPAND_KEY
   call read_init
   call connect_loop
 

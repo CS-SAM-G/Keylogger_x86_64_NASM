@@ -46,9 +46,8 @@ section .bss
 ; - - - Library procedures - - -
 section .text
 
-; rdi = pointer to plaintext packet buffer
+; rdi = pointer to plaintext packet buffer (Clobbers, returns encrypted)
 ; rsi = pointer to expanded key
-; rdx = pointer to encrypted packet buffer
 aes_encrypt:
 
   ; sub_byte(rdi=state)
@@ -57,9 +56,10 @@ aes_encrypt:
   ; add_round_key(rdi=state, rsi=round_key)
 
   push rax
-  push rbx 
+  push rbx
   push rcx 
   push rdx
+  push rsi
 
   ; Round 0
   call add_round_key
@@ -85,12 +85,7 @@ aes_encrypt:
   call shift_rows 
   call add_round_key
 
-  ; Load encrypted string into rdx
-  mov rax, qword [rdi]
-  mov [rdx], rax
-  mov rax, qword [rdi + 8]
-  mov [rdx + 8], rax
-
+  pop rsi
   pop rdx 
   pop rcx 
   pop rbx 
@@ -153,7 +148,7 @@ aes_key_expansion:
 
 ; - - - AES Tranformations - - -
 
-; XOR source block with destination block (effectively matrix addition)
+; XOR source block with destination block
 ; rdi = state
 ; rsi = round_key
 ; 
@@ -201,7 +196,6 @@ sub_bytes:
   ret 
 
 ; Shifts rows of state 
-; row1 = no change. row1 = rol1, row2 = rol2, row 3 = rol3 (equ to ror 1)  // (opposite for little endian)
 ; rdi = state
 ; 
 ; Returns: shifted state
@@ -266,9 +260,9 @@ mix_columns:
 
   .col_loop:
 
-    lea rsi, [rdi + rcx*4]      ; pointer to column
+    lea rsi, [rdi + rcx*4]
 
-    mov al, byte [rsi]              ; t = b[0] ^ b[1] ^ b[2] ^ b[3]
+    mov al, byte [rsi]
     xor al, byte [rsi + 1]
     xor al, byte [rsi + 2]
     xor al, byte [rsi + 3]
